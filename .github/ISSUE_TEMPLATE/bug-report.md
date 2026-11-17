@@ -1,10 +1,9 @@
 ---
 name: Bug Report
 about: Create a report to help us improve
-title: ''
+title: ""
 labels: bug
-assignees: ''
-
+assignees: ""
 ---
 
 **Describe the bug**
@@ -17,5 +16,6 @@ Steps to reproduce the behavior.
 If possible, add screenshots or screen recordings to help explain your problem.
 
 **Environment(please complete the following information):**
- - OS: [e.g. Windows]
- - Browser [e.g. chrome, safari]
+
+- OS: [e.g. Windows]
+- Browser [e.g. chrome, safari]

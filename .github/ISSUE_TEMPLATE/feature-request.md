@@ -1,10 +1,9 @@
 ---
 name: Feature Request
 about: Suggest an idea for Web osu!mania
-title: ''
+title: ""
 labels: enhancement
-assignees: ''
-
+assignees: ""
 ---
 
 **Describe the feature/improvement**
