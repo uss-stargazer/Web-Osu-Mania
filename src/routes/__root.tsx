@@ -13,6 +13,8 @@ import {
   createRootRoute,
 } from "@tanstack/react-router";
 import appCss from "../styles/globals.css?url";
+import { useEffect } from "react";
+import { Serwist } from "@serwist/window";
 
 const title = "Web osu!mania";
 const description = "Play osu!mania beatmaps in your web browser.";
@@ -74,6 +76,21 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
+  useEffect(() => {
+    const loadSerwist = async () => {
+      if ("serviceWorker" in navigator) {
+        const serwist = new Serwist("/sw.js", { scope: "/", type: "module" });
+
+        serwist?.addEventListener("installed", () =>
+          console.log("Serwist installed!"),
+        );
+        void serwist?.register();
+      }
+    };
+
+    loadSerwist().catch(console.error);
+  }, []);
+
   return (
     <Html>
       <head>
