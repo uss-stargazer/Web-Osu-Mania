@@ -70,7 +70,7 @@ export default defineConfig({
         swSrc: "src/sw.ts",
         swDest: "../client/sw.js", // see https://github.com/serwist/serwist/blob/main/examples/tanstack-start-basic/vite.config.ts
         globDirectory: "dist/client",
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,mp3}"],
+        globPatterns: ["**/*.*"],
         injectionPoint: "self.__SW_MANIFEST",
         rollupFormat: "iife",
         maximumFileSizeToCacheInBytes: 5000000,
