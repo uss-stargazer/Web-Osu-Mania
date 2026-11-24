@@ -427,3 +427,7 @@ export function createObjectURLWithExtension(file: File) {
   const url = `${URL.createObjectURL(file)}#.${format}`;
   return url;
 }
+
+export function simpleDeepEquals(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}

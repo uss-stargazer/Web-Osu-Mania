@@ -20,6 +20,8 @@ import BeatmapSetCover from "./beatmapSetCover";
 import CollectionsDropdown from "./collectionsDropdown";
 import IndexedDbButton from "./indexedDbButton";
 import PreviewProgressBar from "./previewProgressBar";
+import { simpleDeepEquals } from "@/lib/utils";
+import { idb } from "@/lib/idb";
 
 const BeatmapSet = ({ beatmapSet }: { beatmapSet: BeatmapSetData }) => {
   const search = Route.useSearch();
@@ -36,8 +38,9 @@ const BeatmapSet = ({ beatmapSet }: { beatmapSet: BeatmapSetData }) => {
     if (isOpen) {
       playPreview();
 
-      // If the category is "Stored" or a collection is selected, fetch the beatmap set data
-      // in case the stored data is out of date
+      // If the category is "Stored" or a collection is selected, fetch the
+      // beatmap set data in case the stored data is out of date. If it is out
+      // of date, also remove out of date beatmap file from idb.
       if (category === "Stored" || collection) {
         const beatmapSetData = await queryClient.fetchQuery({
           queryKey: ["beatmapSets", beatmapSet.id],
@@ -46,19 +49,23 @@ const BeatmapSet = ({ beatmapSet }: { beatmapSet: BeatmapSetData }) => {
           retry: 0,
         });
 
+        const updateBeatmapSets = async (beatmapSets: BeatmapSetData[]) => {
+          const index = beatmapSets.findIndex(
+            (set) => set.id === beatmapSet.id,
+          );
+          if (!simpleDeepEquals(beatmapSets[index], beatmapSetData)) {
+            // NOTE: this may cause issues because the storedBeatmapSets store
+            // and the beatmapFiles store in idb would get out of sync, and
+            // you'd have a "stored" beatmap that isn't actually stored...
+            beatmapSets.splice(index, 1, beatmapSetData);
+            await idb.deleteBeatmap(beatmapSet.id); // but this is necessary since it's out of date
+          }
+        };
+
         if (category === "Stored") {
-          setStoredBeatmapSets((draft) => {
-            const index = draft.findIndex((set) => set.id === beatmapSet.id);
-            draft.splice(index, 1, beatmapSetData);
-          });
+          setStoredBeatmapSets(updateBeatmapSets);
         } else if (collection) {
-          setCollections((draft) => {
-            draft[collection].splice(
-              draft[collection].findIndex((set) => set.id === beatmapSet.id),
-              1,
-              beatmapSetData,
-            );
-          });
+          setCollections((draft) => updateBeatmapSets(draft[collection]));
         }
       }
     } else {
