@@ -12,7 +12,7 @@ const BeatmapManagementSettings = ({
   searchQuery,
 }: SettingsSectionProps) => {
   const setSettings = useSettingsStore.use.setSettings();
-  const idbUsage = useBeatmapSetCacheStore.use.idbUsage();
+  const getIdbCacheUsage = useBeatmapSetCacheStore.use.getIdbCacheUsage();
   const clearIdbCache = useBeatmapSetCacheStore.use.clearIdbCache();
 
   return (
@@ -50,7 +50,7 @@ const BeatmapManagementSettings = ({
                   draft.storeDownloadedBeatmaps = checked;
                 });
 
-                if (!checked && idbUsage && idbUsage > 0) {
+                if (!checked && (await getIdbCacheUsage()) > 0) {
                   await clearIdbCache();
                 }
               }}

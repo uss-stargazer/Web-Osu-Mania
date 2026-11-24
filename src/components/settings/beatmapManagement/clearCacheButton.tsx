@@ -14,7 +14,7 @@ import { useBeatmapSetCacheStore } from "@/stores/beatmapSetCacheStore";
 import { useStoredBeatmapSetsStore } from "@/stores/storedBeatmapSetsStore";
 import { filesize } from "filesize";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export const clearCacheLabel = "Clear Cache";
@@ -29,11 +29,16 @@ const ClearCacheButton = ({
   children?: ReactNode;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const idbUsage = useBeatmapSetCacheStore.use.idbUsage();
+  const [idbUsage, setIdbUsage] = useState(0);
+  const getIdbCacheUsage = useBeatmapSetCacheStore.use.getIdbCacheUsage();
   const clearIdbCache = useBeatmapSetCacheStore.use.clearIdbCache();
   const storedBeatmapSets = useStoredBeatmapSetsStore.use.storedBeatmapSets();
   const resetStoredBeatmapSets =
     useStoredBeatmapSetsStore.use.resetStoredBeatmapSets();
+
+  useEffect(() => {
+    getIdbCacheUsage().then(setIdbUsage);
+  }, [getIdbCacheUsage]);
 
   if (
     searchQuery &&

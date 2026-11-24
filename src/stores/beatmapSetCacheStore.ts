@@ -9,8 +9,7 @@ import { BEATMAP_API_PROVIDERS, useSettingsStore } from "./settingsStore";
 
 type BeatmapSetCacheState = {
   beatmapSetCache: Map<number, Blob>;
-  idbUsage: number;
-  calculateCacheUsage: () => Promise<void>;
+  getIdbCacheUsage: () => Promise<number>;
   clearIdbCache: () => Promise<void>;
   getBeatmapSet: (
     beatmapSetId: number,
@@ -23,13 +22,11 @@ enableMapSet();
 const useBeatmapSetCacheStoreBase = create<BeatmapSetCacheState>()(
   immer((set, get) => ({
     beatmapSetCache: new Map(),
-    idbUsage: 0,
-    calculateCacheUsage: async () => {
+    getIdbCacheUsage: async () => {
       const beatmapCount = await idb.getBeatmapCount();
 
       if (beatmapCount === 0) {
-        set({ idbUsage: 0 });
-        return;
+        return 0;
       }
 
       if (!navigator.storage) {
@@ -44,12 +41,11 @@ const useBeatmapSetCacheStoreBase = create<BeatmapSetCacheState>()(
         throw new Error("Could not determine IDB cache usage.");
       }
 
-      set({ idbUsage: storage.usage });
+      return storage.usage;
     },
 
     clearIdbCache: async () => {
       await idb.clearBeatmapSets();
-      await get().calculateCacheUsage();
     },
 
     getBeatmapSet: async (beatmapSetId, setDownloadPercent) => {
@@ -142,7 +138,6 @@ const useBeatmapSetCacheStoreBase = create<BeatmapSetCacheState>()(
         if (storeDownloadedBeatmaps) {
           try {
             await idb.putBeatmapSet(beatmapSetId, beatmapSetFile);
-            await get().calculateCacheUsage();
           } catch (error) {
             toast("Warning", {
               description:
@@ -169,8 +164,6 @@ const useBeatmapSetCacheStoreBase = create<BeatmapSetCacheState>()(
     },
   })),
 );
-
-useBeatmapSetCacheStoreBase.getState().calculateCacheUsage();
 
 export const useBeatmapSetCacheStore = createSelectors(
   useBeatmapSetCacheStoreBase,
