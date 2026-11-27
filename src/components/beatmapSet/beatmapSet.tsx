@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
@@ -27,8 +28,7 @@ const BeatmapSet = ({ beatmapSet }: { beatmapSet: BeatmapSetData }) => {
   const search = Route.useSearch();
   const category = parseCategoryParam(search.category);
   const setCollections = useCollectionsStore((state) => state.setCollections);
-  const setStoredBeatmapSets =
-    useStoredBeatmapSetsStore.use.setStoredBeatmapSets();
+  const storedActions = useStoredBeatmapSetsStore.use.actions();
   const queryClient = useQueryClient();
   const [preview, setPreview] = useState<Howl | null>(null);
   const collection = search.collection;
@@ -39,8 +39,7 @@ const BeatmapSet = ({ beatmapSet }: { beatmapSet: BeatmapSetData }) => {
       playPreview();
 
       // If the category is "Stored" or a collection is selected, fetch the
-      // beatmap set data in case the stored data is out of date. If it is out
-      // of date, also remove out of date beatmap file from idb.
+      // beatmap set data in case the stored data is out of date.
       if (category === "Stored" || collection) {
         const beatmapSetData = await queryClient.fetchQuery({
           queryKey: ["beatmapSets", beatmapSet.id],
@@ -49,22 +48,43 @@ const BeatmapSet = ({ beatmapSet }: { beatmapSet: BeatmapSetData }) => {
           retry: 0,
         });
 
-        const updateBeatmapSets = async (beatmapSets: BeatmapSetData[]) => {
-          const index = beatmapSets.findIndex(
-            (set) => set.id === beatmapSet.id,
-          );
-          if (!simpleDeepEquals(beatmapSets[index], beatmapSetData)) {
+        if (simpleDeepEquals(beatmapSetData, beatmapSet)) {
+          return; // already up to date
+        }
+
+        if (category === "Stored") {
+          // If stored, update storedBeatmapSets and download new beatmap set
+          // file in the background
+
+          const toastMessage = `"${beatmapSet.title}" is out of date.`;
+          const toastId = toast.loading(toastMessage);
+          const setDownloadPercent = (percent: number) =>
+            toast.loading(
+              toastMessage + ` Downloading updated... ${percent}%`,
+              { id: toastId },
+            );
+
+          await storedActions.deleteBeatmapSet(beatmapSet.id)
+          await storedActions.storeBeatmapSet(beatmapSetData, setDownloadPercent)
+            .then(() => toast.dismiss(toastId))
+            .catch((e) =>
+              toast.error("Download failed", {
+                id: toastId,
+                description: e.message,
+              }),
+            );
+        } else if (collection) {
+          const updateBeatmapSets = async (beatmapSets: BeatmapSetData[]) => {
             // NOTE: this may cause issues because the storedBeatmapSets store
             // and the beatmapFiles store in idb would get out of sync, and
             // you'd have a "stored" beatmap that isn't actually stored...
+            const index = beatmapSets.findIndex(
+              (set) => set.id === beatmapSet.id,
+            );
             beatmapSets.splice(index, 1, beatmapSetData);
             await idb.deleteBeatmap(beatmapSet.id); // but this is necessary since it's out of date
-          }
-        };
+          };
 
-        if (category === "Stored") {
-          setStoredBeatmapSets(updateBeatmapSets);
-        } else if (collection) {
           setCollections((draft) => updateBeatmapSets(draft[collection]));
         }
       }

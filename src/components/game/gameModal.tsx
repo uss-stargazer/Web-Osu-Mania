@@ -23,8 +23,7 @@ const GameModal = () => {
   const backgroundDim = useSettingsStore.use.backgroundDim();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const getBeatmapSet = useBeatmapSetCacheStore.use.getBeatmapSet();
-  const setStoredBeatmapSets =
-    useStoredBeatmapSetsStore.use.setStoredBeatmapSets();
+  const storedActions = useStoredBeatmapSetsStore.use.actions();
   const replayData = useGameStore.use.replayData();
   const setReplayData = useGameStore.use.setReplayData();
   const mods = useSettingsStore.use.mods();
@@ -56,18 +55,28 @@ const GameModal = () => {
     let cancelled = false;
 
     const loadBeatmap = async () => {
-      let beatmapSetFile: Blob;
-
       if (!beatmapSet) {
         throw new Error("beatmapSet is null (this shouldn't happen)");
       }
 
-      if (uploadedBeatmapSet) {
-        beatmapSetFile = uploadedBeatmapSet;
-      } else if (localReplayBeatmapSet) {
-        beatmapSetFile = localReplayBeatmapSet;
-      } else {
-        try {
+      let beatmapSetFile: Blob;
+
+      try {
+        if (uploadedBeatmapSet) {
+          beatmapSetFile = uploadedBeatmapSet;
+        } else if (localReplayBeatmapSet) {
+          beatmapSetFile = localReplayBeatmapSet;
+        } else if (storeDownloadedBeatmaps) {
+          if (!storedActions.getBeatmapSet(beatmapSet.id)) {
+            await storedActions.storeBeatmapSet(beatmapSet, setDownloadPercent);
+          }
+
+          beatmapSetFile =
+            (await storedActions.getBeatmapSetFile(beatmapSet.id)) ||
+            (() => {
+              throw new Error("Failed to access stored beatmap set file");
+            })();
+        } else {
           beatmapSetFile = await getBeatmapSet(
             beatmapSet.id,
             setDownloadPercent,
@@ -105,6 +114,14 @@ const GameModal = () => {
           closeGame();
           return;
         }
+      } catch (error: any) {
+        toast("Download Error", {
+          description: error.message,
+          duration: 10000,
+        });
+
+        closeGame();
+        return;
       }
 
       try {
@@ -179,7 +196,7 @@ const GameModal = () => {
     uploadedBeatmapSet,
     localReplayBeatmapSet,
     beatmapSet,
-    setStoredBeatmapSets,
+    storedActions,
     storeDownloadedBeatmaps,
     setReplayData,
     mods,
